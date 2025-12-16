@@ -10,22 +10,23 @@ import (
 type step int
 
 const (
-	stepInput step = iota
+	stepLogin step = iota
 	stepProjects
 )
 
 type Model struct {
-	step step
-	err  error
+	step    step
+	err     error
+	loading bool
 
 	urlInput   textinput.Model
 	tokenInput textinput.Model
-	groupInput textinput.Model
 
-	state *state.AppState
+	cursor int
+	state  *state.AppState
 }
 
-func NewModel() *Model {
+func NewModel() Model {
 	url := textinput.New()
 	url.Placeholder = "http://gitlab.example.com"
 	url.Focus()
@@ -34,18 +35,18 @@ func NewModel() *Model {
 	token.Placeholder = "glpat-xxxx"
 	token.EchoMode = textinput.EchoPassword
 
-	group := textinput.New()
-	group.Placeholder = "group-name"
-
-	return &Model{
-		step:       stepInput,
+	return Model{
+		step:       stepLogin,
 		urlInput:   url,
 		tokenInput: token,
-		groupInput: group,
-		state:      &state.AppState{},
+		state: &state.AppState{
+			Selected: make(map[int]bool),
+			Branch:   "dev",
+			DryRun:   true,
+		},
 	}
 }
 
-func (m *Model) Init() tea.Cmd {
+func (m Model) Init() tea.Cmd {
 	return nil
 }

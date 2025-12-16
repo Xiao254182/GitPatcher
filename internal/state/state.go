@@ -5,10 +5,13 @@ import "github.com/xanzy/go-gitlab"
 type AppState struct {
 	GitlabURL   string
 	GitlabToken string
-	Group       string
 
+	Groups   []*gitlab.Group
 	Projects []*gitlab.Project
-}
-type State struct {
-	Step int
+
+	Selected map[int]bool
+
+	Branch   string
+	FilePath string
+	DryRun   bool
 }
