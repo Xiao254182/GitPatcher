@@ -12,6 +12,21 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	switch msg := msg.(type) {
 
+	case tea.KeyMsg:
+		switch msg.Type {
+
+		case tea.KeyCtrlC:
+			return m, tea.Quit
+
+		case tea.KeyEsc:
+			return m, tea.Quit
+
+		case tea.KeyRunes:
+			if msg.String() == "q" {
+				return m, tea.Quit
+			}
+		}
+
 	case error:
 		m.loading = false
 		m.err = msg
