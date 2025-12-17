@@ -1,29 +1,29 @@
 package ui
 
 import (
-	"GitPatcher/internal/state"
+	"GitPatcher/internal/ui/components"
 
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/xanzy/go-gitlab"
 )
 
-type step int
+type Step int
 
 const (
-	stepLogin step = iota
-	stepProjects
+	stepLogin Step = iota
+	stepBrowse
 )
 
 type Model struct {
-	step    step
-	err     error
-	loading bool
+	step Step
+	err  error
 
 	urlInput   textinput.Model
 	tokenInput textinput.Model
 
-	cursor int
-	state  *state.AppState
+	client *gitlab.Client
+	tree   *components.Tree
 }
 
 func NewModel() Model {
@@ -39,11 +39,6 @@ func NewModel() Model {
 		step:       stepLogin,
 		urlInput:   url,
 		tokenInput: token,
-		state: &state.AppState{
-			Selected: make(map[int]bool),
-			Branch:   "dev",
-			DryRun:   true,
-		},
 	}
 }
 

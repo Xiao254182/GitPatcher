@@ -2,14 +2,17 @@ package gitlabclient
 
 import "github.com/xanzy/go-gitlab"
 
-func ListGroupProjects(client *gitlab.Client, gid int) ([]*gitlab.Project, error) {
+func ListGroupProjects(client *gitlab.Client, groupID int) ([]*gitlab.Project, error) {
 	var all []*gitlab.Project
 	opt := &gitlab.ListGroupProjectsOptions{
-		ListOptions: gitlab.ListOptions{PerPage: 50},
+		ListOptions: gitlab.ListOptions{
+			Page:    1,
+			PerPage: 50,
+		},
 	}
 
 	for {
-		ps, resp, err := client.Groups.ListGroupProjects(gid, opt)
+		ps, resp, err := client.Groups.ListGroupProjects(groupID, opt)
 		if err != nil {
 			return nil, err
 		}
