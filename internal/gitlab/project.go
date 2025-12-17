@@ -4,6 +4,7 @@ import "github.com/xanzy/go-gitlab"
 
 func ListGroupProjects(client *gitlab.Client, groupID int) ([]*gitlab.Project, error) {
 	var all []*gitlab.Project
+
 	opt := &gitlab.ListGroupProjectsOptions{
 		ListOptions: gitlab.ListOptions{
 			Page:    1,
@@ -22,5 +23,6 @@ func ListGroupProjects(client *gitlab.Client, groupID int) ([]*gitlab.Project, e
 		}
 		opt.Page++
 	}
+
 	return all, nil
 }

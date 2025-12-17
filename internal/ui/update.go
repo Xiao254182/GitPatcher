@@ -2,29 +2,24 @@ package ui
 
 import (
 	gitlabclient "GitPatcher/internal/gitlab"
-	"GitPatcher/internal/ui/components"
 
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/xanzy/go-gitlab"
 )
 
-type msgConnected struct {
-	client *gitlab.Client
-}
-
+type msgConnected struct{}
 type msgGroupsLoaded struct{}
 
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+
 	// 全局退出
-	switch msg := msg.(type) {
-	case tea.KeyMsg:
-		switch msg.String() {
-		case "ctrl+c", "q":
+	if key, ok := msg.(tea.KeyMsg); ok {
+		if key.String() == "ctrl+c" || key.String() == "q" {
 			return m, tea.Quit
 		}
 	}
 
 	switch m.step {
+
 	case stepLogin:
 		switch msg := msg.(type) {
 		case tea.KeyMsg:
@@ -43,7 +38,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					if err != nil {
 						return err
 					}
-					return msgConnected{client: c}
+					m.app.Client = c
+					return msgConnected{}
 				}
 			}
 		}
@@ -60,21 +56,29 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					m.tree.Cursor--
 				}
 			case "down":
-				if m.tree.Cursor < len(m.tree.Groups)-1 {
+				if m.tree.Cursor < len(m.tree.Flat)-1 {
 					m.tree.Cursor++
 				}
 			case "enter":
-				_ = m.tree.ToggleGroup(m.tree.Cursor)
+				m.tree.Toggle()
 			}
 		}
 	}
 
-	switch msg := msg.(type) {
+	switch msg.(type) {
+
 	case msgConnected:
-		m.client = msg.client
-		m.tree = components.NewTree(m.client)
 		return m, func() tea.Msg {
-			_ = m.tree.LoadGroups()
+			groups, err := gitlabclient.ListGroups(m.app.Client)
+			if err != nil {
+				return err
+			}
+			m.tree.Groups = groups
+			for _, g := range groups {
+				ps, _ := gitlabclient.ListGroupProjects(m.app.Client, g.ID)
+				m.tree.Projects[g.ID] = ps
+			}
+			m.tree.Build()
 			return msgGroupsLoaded{}
 		}
 

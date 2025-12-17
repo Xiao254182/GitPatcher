@@ -3,71 +3,86 @@ package components
 import (
 	"fmt"
 
-	gitlabclient "GitPatcher/internal/gitlab"
 	"github.com/xanzy/go-gitlab"
 )
 
 type Tree struct {
-	client *gitlab.Client
-
 	Groups   []*gitlab.Group
 	Projects map[int][]*gitlab.Project
+
 	Expanded map[int]bool
-	Cursor   int
+	Checked  map[int]bool
+
+	Cursor int
+	Flat   []TreeItem
 }
 
-func NewTree(client *gitlab.Client) *Tree {
+type TreeItem struct {
+	IsGroup bool
+	Group   *gitlab.Group
+	Project *gitlab.Project
+}
+
+func NewTree() *Tree {
 	return &Tree{
-		client:   client,
 		Projects: make(map[int][]*gitlab.Project),
 		Expanded: make(map[int]bool),
+		Checked:  make(map[int]bool),
 	}
 }
 
-func (t *Tree) LoadGroups() error {
-	groups, err := gitlabclient.ListGroups(t.client)
-	if err != nil {
-		return err
-	}
-	t.Groups = groups
-	return nil
-}
+func (t *Tree) Build() {
+	t.Flat = nil
+	for _, g := range t.Groups {
+		t.Flat = append(t.Flat, TreeItem{
+			IsGroup: true,
+			Group:   g,
+		})
 
-func (t *Tree) ToggleGroup(idx int) error {
-	g := t.Groups[idx]
-	if t.Expanded[g.ID] {
-		t.Expanded[g.ID] = false
-		return nil
-	}
-
-	if _, ok := t.Projects[g.ID]; !ok {
-		ps, err := gitlabclient.ListGroupProjects(t.client, g.ID)
-		if err != nil {
-			return err
+		if !t.Expanded[g.ID] {
+			continue
 		}
-		t.Projects[g.ID] = ps
+
+		for _, p := range t.Projects[g.ID] {
+			t.Flat = append(t.Flat, TreeItem{
+				IsGroup: false,
+				Project: p,
+			})
+		}
 	}
-	t.Expanded[g.ID] = true
-	return nil
+}
+
+func (t *Tree) Toggle() {
+	item := t.Flat[t.Cursor]
+	if item.IsGroup {
+		t.Expanded[item.Group.ID] = !t.Expanded[item.Group.ID]
+	} else {
+		id := item.Project.ID
+		t.Checked[id] = !t.Checked[id]
+	}
+	t.Build()
 }
 
 func (t *Tree) View() string {
-	out := "Groups / Projects\n\n"
-	for i, g := range t.Groups {
-		prefix := "▶"
-		if t.Expanded[g.ID] {
-			prefix = "▼"
-		}
+	out := ""
+	for i, item := range t.Flat {
 		cursor := " "
 		if i == t.Cursor {
-			cursor = ">"
+			cursor = "▶"
 		}
-		out += fmt.Sprintf("%s %s %s\n", cursor, prefix, g.FullPath)
 
-		if t.Expanded[g.ID] {
-			for _, p := range t.Projects[g.ID] {
-				out += fmt.Sprintf("    • %s\n", p.Path)
+		if item.IsGroup {
+			arrow := "▶"
+			if t.Expanded[item.Group.ID] {
+				arrow = "▼"
 			}
+			out += fmt.Sprintf("%s %s %s\n", cursor, arrow, item.Group.FullName)
+		} else {
+			box := "☐"
+			if t.Checked[item.Project.ID] {
+				box = "✔"
+			}
+			out += fmt.Sprintf("  %s %s %s\n", cursor, box, item.Project.Path)
 		}
 	}
 	return out
