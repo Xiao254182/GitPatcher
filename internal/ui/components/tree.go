@@ -33,6 +33,7 @@ func NewTree() *Tree {
 
 func (t *Tree) Build() {
 	t.Flat = nil
+
 	for _, g := range t.Groups {
 		t.Flat = append(t.Flat, TreeItem{
 			IsGroup: true,
@@ -54,6 +55,7 @@ func (t *Tree) Build() {
 
 func (t *Tree) Toggle() {
 	item := t.Flat[t.Cursor]
+
 	if item.IsGroup {
 		t.Expanded[item.Group.ID] = !t.Expanded[item.Group.ID]
 	} else {
@@ -63,8 +65,13 @@ func (t *Tree) Toggle() {
 	t.Build()
 }
 
-func (t *Tree) View() string {
-	out := ""
+func (t *Tree) View(active bool) string {
+	out := "Projects\n"
+	if active {
+		out += "[ACTIVE]\n"
+	}
+	out += "\n"
+
 	for i, item := range t.Flat {
 		cursor := " "
 		if i == t.Cursor {

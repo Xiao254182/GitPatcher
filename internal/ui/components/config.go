@@ -1,31 +1,71 @@
 package components
 
-import tea "github.com/charmbracelet/bubbletea"
+import (
+	"fmt"
 
-type ConfigModel struct{}
+	"github.com/charmbracelet/bubbles/textinput"
+	tea "github.com/charmbracelet/bubbletea"
+)
 
-func NewConfig() ConfigModel {
-	return ConfigModel{}
+type Config struct {
+	Branch   textinput.Model
+	FilePath textinput.Model
+	DryRun   bool
 }
 
-func (m ConfigModel) Update(msg tea.Msg) (ConfigModel, tea.Cmd) {
-	return m, nil
+func NewConfig() *Config {
+	b := textinput.New()
+	b.Placeholder = "branch (e.g. main)"
+
+	f := textinput.New()
+	f.Placeholder = "file path (e.g. CICD/.gitlab-ci.yml)"
+
+	return &Config{
+		Branch:   b,
+		FilePath: f,
+		DryRun:   true,
+	}
 }
 
-func (m ConfigModel) View(active bool) string {
-	title := "Config Panel"
+func (c *Config) Update(msg tea.Msg) tea.Cmd {
+	switch msg := msg.(type) {
+	case tea.KeyMsg:
+		if msg.String() == "tab" {
+			if c.Branch.Focused() {
+				c.Branch.Blur()
+				c.FilePath.Focus()
+			} else {
+				c.FilePath.Blur()
+				c.Branch.Focus()
+			}
+		}
+		if msg.String() == " " {
+			c.DryRun = !c.DryRun
+		}
+	}
+
+	var cmd tea.Cmd
+	c.Branch, cmd = c.Branch.Update(msg)
+	c.FilePath, _ = c.FilePath.Update(msg)
+	return cmd
+}
+
+func (c *Config) View(active bool) string {
+	title := "Config"
 	if active {
 		title += " [ACTIVE]"
 	}
 
-	return title + `
-Branch: dev ▼
+	mode := "Apply"
+	if c.DryRun {
+		mode = "Dry-run"
+	}
 
-File Path:
-[ CICD/ ]
-
-Mode:
-(●) Dry-run  ( ) Apply
-
-[ Preview Diff ]`
+	return fmt.Sprintf(
+		"%s\n\nBranch:\n%s\n\nFile Path:\n%s\n\nMode: %s\n\n[Space] Toggle Mode\n[Tab] Switch Input\n",
+		title,
+		c.Branch.View(),
+		c.FilePath.View(),
+		mode,
+	)
 }

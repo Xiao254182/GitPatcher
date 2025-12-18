@@ -3,9 +3,9 @@ package main
 import (
 	"log"
 
-	tea "github.com/charmbracelet/bubbletea"
-
 	"GitPatcher/internal/ui"
+
+	tea "github.com/charmbracelet/bubbletea"
 )
 
 func main() {

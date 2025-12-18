@@ -4,23 +4,28 @@ import tea "github.com/charmbracelet/bubbletea"
 
 type DiffModel struct{}
 
-func NewDiff() DiffModel {
-	return DiffModel{}
+func NewDiff() *DiffModel {
+	return &DiffModel{}
 }
 
-func (m DiffModel) Update(msg tea.Msg) (DiffModel, tea.Cmd) {
-	return m, nil
+func (d *DiffModel) Update(msg tea.Msg) tea.Cmd {
+	return nil
 }
 
-func (m DiffModel) View(active bool) string {
-	title := "Diff Preview"
+func (d *DiffModel) View(active bool) string {
+	title := "Diff"
 	if active {
 		title += " [ACTIVE]"
 	}
 
 	return title + `
-┌──── OLD ────┐   ┌──── NEW ────┐
-│             │   │             │
-│             │   │             │
-└─────────────┘   └─────────────┘`
+┌──── OLD ────┐
+│             │
+│   (empty)   │
+└─────────────┘
+
+┌──── NEW ────┐
+│             │
+│   (empty)   │
+└─────────────┘`
 }

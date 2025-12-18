@@ -7,14 +7,25 @@ import (
 )
 
 type msgConnected struct{}
-type msgGroupsLoaded struct{}
+type msgLoaded struct{}
+
+func (m Model) Init() tea.Cmd { return nil }
 
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	// 全局退出
 	if key, ok := msg.(tea.KeyMsg); ok {
-		if key.String() == "ctrl+c" || key.String() == "q" {
+		switch key.String() {
+		case "ctrl+c", "q":
 			return m, tea.Quit
+		case "left":
+			if m.focus > FocusTree {
+				m.focus--
+			}
+		case "right":
+			if m.focus < FocusDiff {
+				m.focus++
+			}
 		}
 	}
 
@@ -22,46 +33,65 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case stepLogin:
 		switch msg := msg.(type) {
+
 		case tea.KeyMsg:
-			if msg.String() == "enter" {
-				if m.urlInput.Focused() {
+			switch msg.String() {
+
+			case "enter":
+				switch m.loginStep {
+
+				case loginURL:
+					// 从 URL → Token
+					m.loginStep = loginToken
 					m.urlInput.Blur()
 					m.tokenInput.Focus()
 					return m, nil
-				}
 
-				return m, func() tea.Msg {
-					c, err := gitlabclient.NewClient(
-						m.urlInput.Value(),
-						m.tokenInput.Value(),
-					)
-					if err != nil {
-						return err
+				case loginToken:
+					// Token 填完 → 连接 GitLab
+					return m, func() tea.Msg {
+						c, err := gitlabclient.NewClient(
+							m.urlInput.Value(),
+							m.tokenInput.Value(),
+						)
+						if err != nil {
+							return err
+						}
+						m.app.Client = c
+						return msgConnected{}
 					}
-					m.app.Client = c
-					return msgConnected{}
 				}
 			}
 		}
 
+		// 输入更新
 		m.urlInput, _ = m.urlInput.Update(msg)
 		m.tokenInput, _ = m.tokenInput.Update(msg)
 
 	case stepBrowse:
-		switch msg := msg.(type) {
-		case tea.KeyMsg:
-			switch msg.String() {
-			case "up":
-				if m.tree.Cursor > 0 {
-					m.tree.Cursor--
+		switch m.focus {
+
+		case FocusTree:
+			if key, ok := msg.(tea.KeyMsg); ok {
+				switch key.String() {
+				case "up":
+					if m.tree.Cursor > 0 {
+						m.tree.Cursor--
+					}
+				case "down":
+					if m.tree.Cursor < len(m.tree.Flat)-1 {
+						m.tree.Cursor++
+					}
+				case "enter":
+					m.tree.Toggle()
 				}
-			case "down":
-				if m.tree.Cursor < len(m.tree.Flat)-1 {
-					m.tree.Cursor++
-				}
-			case "enter":
-				m.tree.Toggle()
 			}
+
+		case FocusConfig:
+			return m, m.config.Update(msg)
+
+		case FocusDiff:
+			return m, m.diff.Update(msg)
 		}
 	}
 
@@ -79,12 +109,11 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.tree.Projects[g.ID] = ps
 			}
 			m.tree.Build()
-			return msgGroupsLoaded{}
+			return msgLoaded{}
 		}
 
-	case msgGroupsLoaded:
+	case msgLoaded:
 		m.step = stepBrowse
-		return m, nil
 	}
 
 	return m, nil

@@ -5,26 +5,42 @@ import (
 	"GitPatcher/internal/ui/components"
 
 	"github.com/charmbracelet/bubbles/textinput"
-	tea "github.com/charmbracelet/bubbletea"
-	"github.com/xanzy/go-gitlab"
 )
 
 type step int
+type Focus int
+type loginStep int
 
+const (
+	loginURL loginStep = iota
+	loginToken
+)
 const (
 	stepLogin step = iota
 	stepBrowse
 )
 
+const (
+	FocusTree Focus = iota
+	FocusConfig
+	FocusDiff
+)
+
 type Model struct {
 	step step
-	err  error
+
+	loginStep loginStep
+	focus     Focus
+	err       error
 
 	urlInput   textinput.Model
 	tokenInput textinput.Model
 
-	tree *components.Tree
-	app  *state.AppState
+	tree   *components.Tree
+	config *components.Config
+	diff   *components.DiffModel
+
+	app *state.AppState
 }
 
 func NewModel() Model {
@@ -38,17 +54,16 @@ func NewModel() Model {
 
 	return Model{
 		step:       stepLogin,
+		loginStep:  loginURL,
+		focus:      FocusTree,
 		urlInput:   url,
 		tokenInput: token,
 		tree:       components.NewTree(),
+		config:     components.NewConfig(),
+		diff:       components.NewDiff(),
 		app: &state.AppState{
-			Projects:         make(map[int][]*gitlab.Project),
 			SelectedProjects: make(map[int]bool),
-			ExpandedGroups:   make(map[int]bool),
+			DryRun:           true,
 		},
 	}
-}
-
-func (m Model) Init() tea.Cmd {
-	return nil
 }
